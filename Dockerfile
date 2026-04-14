@@ -7,6 +7,7 @@ RUN apt-get update && apt-get install -y sqlite3 && rm -rf /var/lib/apt/lists/*
 # Establecemos el directorio de trabajo dentro del contenedor
 WORKDIR /app
 
+
 # Copiamos primero los archivos de dependencias y las instalamos
 COPY package*.json ./
 RUN npm install

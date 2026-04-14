@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS users (
     password_hash TEXT NOT NULL
 );
 
+
 -- Tabla de enlaces
 CREATE TABLE IF NOT EXISTS links (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
