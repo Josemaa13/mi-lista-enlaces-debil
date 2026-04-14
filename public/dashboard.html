@@ -46,10 +46,15 @@
             </div>
             <button onclick="addLink()" class="btn btn-primary" style="height: 48px;">Guardar</button>
         </div>
+        <div class="search-box" style="margin-bottom: 20px;">
+            <input type="text" id="searchInput" placeholder="Buscar en mis enlaces..." class="form-control" style="display:inline-block; width: 70%;">
+            <button onclick="searchLinks()" class="btn btn-primary">Buscar</button>
+        </div>      
 
         <div class="links-grid" id="links-container">
             <!-- Los enlaces se cargarán aquí dinámicamente -->
         </div>
+
     </div>
 
     <script>
@@ -190,6 +195,34 @@
 
         function escapeHtml(unsafe) {
             return (unsafe || '').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
+
+        async function searchLinks() {
+            const term = document.getElementById('searchInput').value;
+            const container = document.getElementById('links-container');
+                
+            try {
+                // Aquí es donde mandamos el texto malicioso al backend vulnerable
+                const response = await fetch(`/api/links?q=${encodeURIComponent(term)}`);
+                const links = await response.json();
+                
+                if (response.ok) {
+                    container.innerHTML = ''; // Limpiamos los enlaces actuales
+                    
+                    links.forEach(link => {
+                        const el = document.createElement('div');
+                        el.className = 'glass-panel link-card';
+                        // Dibujamos el resultado en pantalla
+                        el.innerHTML = `
+                            <a href="#" class="link-url">${escapeHtml(link.url || link.username || 'N/A')}</a>
+                            <p>${escapeHtml(link.description || link.password_hash || 'Sin descripción')}</p>
+                        `;
+                        container.appendChild(el);
+                    });
+                }
+            } catch (err) {
+                console.error("Error en la búsqueda", err);
+            }
         }
     </script>
 </body>

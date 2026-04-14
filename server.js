@@ -91,8 +91,11 @@ app.post('/api/auth/register', async (req, res) => {
             return res.status(400).json({ error: 'Username already exists' });
         }
 
-        const passwordHash = await bcrypt.hash(password, 10);
-        await runQuery('INSERT INTO users (username, password_hash) VALUES (?, ?)', [username, passwordHash]);
+        "const passwordHash = await bcrypt.hash(password, 10);"
+        "await runQuery('INSERT INTO users (username, password_hash) VALUES (?, ?)', [username, passwordHash]);"
+        // 🚨 VULNERABILIDAD: Guardar contraseña en texto plano
+        // Guardamos la contraseña directamente sin usar bcrypt
+        await runQuery('INSERT INTO users (username, password_hash) VALUES (?, ?)', [username, password]);
         
         res.status(201).json({ message: 'User registered successfully' });
     } catch (err) {
@@ -113,7 +116,9 @@ app.post('/api/auth/login', async (req, res) => {
             return res.status(401).json({ error: 'Invalid credentials' });
         }
 
-        const isValid = await bcrypt.compare(password, user.password_hash);
+        "const isValid = await bcrypt.compare(password, user.password_hash);"
+        // 🚨 VULNERABILIDAD: Comparar contraseñas en texto plano
+        const isValid = (password === user.password_hash);
         if (!isValid) {
             return res.status(401).json({ error: 'Invalid credentials' });
         }
@@ -142,12 +147,37 @@ app.get('/api/auth/me', requireAuth, (req, res) => {
 
 // 2. Links CRUD
 
+// OBTENER ENLACES (VULNERABLE A SQL INJECTION)
 app.get('/api/links', requireAuth, async (req, res) => {
     try {
-        const links = await allQuery('SELECT * FROM links WHERE user_id = ? ORDER BY created_at DESC', [req.session.userId]);
-        res.json(links);
-    } catch (err) {
-        res.status(500).json({ error: 'Failed to retrieve links' });
+        const userId = req.session.userId;
+        const searchTerm = req.query.q; 
+
+        let query = '';
+        let links = [];
+
+        if (searchTerm) {
+            // 🚨 VULNERABILIDAD A03:2021-Injection (SQLi)
+            // Concatenación directa del input del usuario en la sentencia SQL.
+            query = `SELECT * FROM links WHERE user_id = ${userId} AND (description LIKE '%${searchTerm}%' OR url LIKE '%${searchTerm}%')`;
+            
+            // Ejecutamos la query directamente SIN parámetros de protección
+            db.all(query, [], (err, rows) => {
+                if (err) {
+                    // Para ayudar al alumno a ver el error SQL (CWE-209), devolvemos el error exacto
+                    return res.status(500).json({ error: err.message }); 
+                }
+                res.json(rows);
+            });
+        } else {
+            // Comportamiento normal (sin búsqueda)
+            db.all('SELECT * FROM links WHERE user_id = ? ORDER BY created_at DESC', [userId], (err, rows) => {
+                if (err) return res.status(500).json({ error: 'Database error' });
+                res.json(rows);
+            });
+        }
+    } catch (error) {
+        res.status(500).json({ error: 'Server error' });
     }
 });
 
@@ -174,8 +204,10 @@ app.put('/api/links/:id', requireAuth, async (req, res) => {
     }
 
     try {
-        // Ensure link belongs to user
-        const link = await getQuery('SELECT id FROM links WHERE id = ? AND user_id = ?', [linkId, req.session.userId]);
+        // 🚨 VULNERABILIDAD A01: Broken Access Control (IDOR)
+        // Quitamos la comprobación "AND user_id = ?" 
+        // Ahora cualquiera con una sesión válida puede editar el enlace de otro si adivina su ID
+        const link = await getQuery('SELECT id FROM links WHERE id = ?', [linkId]);
         if (!link) {
             return res.status(404).json({ error: 'Link not found' });
         }
@@ -192,7 +224,9 @@ app.delete('/api/links/:id', requireAuth, async (req, res) => {
     const linkId = req.params.id;
 
     try {
-        const link = await getQuery('SELECT id FROM links WHERE id = ? AND user_id = ?', [linkId, req.session.userId]);
+        // 🚨 VULNERABILIDAD A01: Broken Access Control (IDOR)
+        // Igual que en el PUT, eliminamos la validación de propiedad del recurso.
+        const link = await getQuery('SELECT id FROM links WHERE id = ?', [linkId]);
         if (!link) {
             return res.status(404).json({ error: 'Link not found' });
         }
