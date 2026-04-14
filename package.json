@@ -1,0 +1,15 @@
+{
+  "name": "mi-lista-enlaces",
+  "version": "1.0.0",
+  "description": "App vulnerable para auditoría",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "sqlite3": "^5.1.6",
+    "express-session": "^1.17.3",
+    "lodash": "4.17.15" 
+  }
+}
