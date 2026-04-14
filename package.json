@@ -12,5 +12,5 @@
     "express-session": "^1.17.3",
     "lodash": "4.17.15",
     "sqlite3": "^5.1.6"
-  }
+  } 
 }
