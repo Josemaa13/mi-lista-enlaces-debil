@@ -17,5 +17,5 @@ CREATE TABLE IF NOT EXISTS links (
 );
 
 -- 🚨 VULNERABILIDAD A02: Security Misconfiguration
--- Credenciales por defecto (admin/admin) dejadas en producción. Usamos IGNORE para evitar crashes al reiniciar.
+-- Credenciales por defecto (admin/admin) dejadas en producción. IGNORE para evitar crashes al reiniciar.
 INSERT OR IGNORE INTO users (username, password_hash) VALUES ('admin', 'admin');
