@@ -265,6 +265,18 @@ app.get('/api/preview', requireAuth, async (req, res) => {
     }
 });
 
+// 🚨 VULNERABILIDAD A02: Security Misconfiguration
+// Configuramos cabeceras inseguras, permitimos CORS universal y revelamos información interna
+app.use((req, res, next) => {
+    // Revelar el motor exacto que usamos (Express ya lo hace, pero lo hacemos explícito)
+    res.setHeader('X-Powered-By', 'Express/4.18.2 Node.js/18.x'); 
+    // CORS excesivamente permisivo (cualquier dominio puede hacer peticiones a nuestra API)
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    // Indicador de modo debug falso que da pistas a un atacante
+    res.setHeader('X-Debug-Mode', 'Enabled');
+    next();
+});
+
 // Handle non-existing API routes
 app.use('/api', (req, res) => {
     res.status(404).json({ error: 'API Endpoint Not Found' });
