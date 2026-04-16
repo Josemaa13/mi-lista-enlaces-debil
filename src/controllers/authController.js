@@ -17,6 +17,10 @@ exports.register = async (req, res) => {
 };
 
 exports.login = async (req, res) => {
+    // 🚨 VULNERABILIDAD A06: Insecure Design
+    // Diseño inseguro deliberado: No se implementan limitadores de peticiones 
+    // (como express-rate-limit) ni mecanismos de bloqueo de cuenta tras intentos fallidos.
+    // Esto permite ataques de fuerza bruta ilimitados.
     const { username, password } = req.body;
     if (!username || !password) return res.status(400).json({ error: 'Username and password are required' });
 
@@ -34,13 +38,30 @@ exports.login = async (req, res) => {
     } catch (err) {
         res.status(500).json({ error: 'Internal server error' });
     }
+    req.session.userId = user.id;
+    req.session.username = user.username;
+
+    // 🚨 VULNERABILIDAD A08: Software/Data Integrity Failures
+    // Asignamos una cookie 'role' en texto plano, sin firma criptográfica (JWT o MAC).
+    // El cliente puede modificarla libremente.
+    const userRole = (user.username === 'admin') ? 'admin' : 'user';
+    res.cookie('role', userRole); 
+
+    res.json({ message: 'Logged in successfully', username: user.username });        
 };
 
 exports.logout = (req, res) => {
-    req.session.destroy(err => {
-        if (err) return res.status(500).json({ error: 'Could not log out' });
-        res.json({ message: 'Logged out successfully' });
-    });
+    // req.session.destroy(err => {
+    //     if (err) return res.status(500).json({ error: 'Could not log out' });
+    //     res.json({ message: 'Logged out successfully' });
+    // });
+    // 🚨 VULNERABILIDAD A07: Authentication Failures
+    // Diseño inseguro: Fingimos cerrar la sesión de cara al usuario, 
+    // pero NO la destruimos en el backend. La cookie sigue siendo válida.
+    // Lo seguro sería hacer: req.session.destroy((err) => {...})
+    
+    // Simplemente devolvemos un mensaje de éxito dejando la sesión intacta
+    res.json({ message: 'Logged out successfully' });
 };
 
 exports.me = (req, res) => {
