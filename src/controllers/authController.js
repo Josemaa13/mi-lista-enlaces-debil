@@ -18,49 +18,45 @@ exports.register = async (req, res) => {
 
 exports.login = async (req, res) => {
     // 🚨 VULNERABILIDAD A06: Insecure Design
-    // Diseño inseguro deliberado: No se implementan limitadores de peticiones 
-    // (como express-rate-limit) ni mecanismos de bloqueo de cuenta tras intentos fallidos.
-    // Esto permite ataques de fuerza bruta ilimitados.
     const { username, password } = req.body;
     if (!username || !password) return res.status(400).json({ error: 'Username and password are required' });
 
     try {
         const user = await getQuery('SELECT id, username, password_hash FROM users WHERE username = ?', [username]);
-        if (!user) return res.status(401).json({ error: 'Invalid credentials' });
+        
+        // 🚨 VULNERABILIDAD A04: Texto plano
+        const isValid = user ? (password === user.password_hash) : false;
 
-        // 🚨 VULNERABILIDAD: Comparar contraseñas en texto plano
-        const isValid = (password === user.password_hash);
-        if (!isValid) return res.status(401).json({ error: 'Invalid credentials' });
+        // Por seguridad en caso de que la variable global no se haya inicializado a tiempo
+        global.securityLogs = global.securityLogs || [];
+
+        if (!user || !isValid) {
+            // 🚨 A09: Fallo de logs (Guardado en memoria volátil)
+            global.securityLogs.push(`[WARN] Intento fallido: ${username} a las ${new Date().toISOString()}`);
+            return res.status(401).json({ error: 'Invalid credentials' });
+        }   
+
+        // Registramos el éxito
+        global.securityLogs.push(`[INFO] Login exitoso: ${username} a las ${new Date().toISOString()}`);
 
         req.session.userId = user.id;
         req.session.username = user.username;
+
+        // 🚨 VULNERABILIDAD A08: Cookie insegura
+        const userRole = (user.username === 'admin') ? 'admin' : 'user';
+        res.cookie('role', userRole); 
+
         res.json({ message: 'Logged in successfully', username: user.username });
     } catch (err) {
+        console.error("💥 ERROR EN LOGIN:", err); 
         res.status(500).json({ error: 'Internal server error' });
     }
-    req.session.userId = user.id;
-    req.session.username = user.username;
-
-    // 🚨 VULNERABILIDAD A08: Software/Data Integrity Failures
-    // Asignamos una cookie 'role' en texto plano, sin firma criptográfica (JWT o MAC).
-    // El cliente puede modificarla libremente.
-    const userRole = (user.username === 'admin') ? 'admin' : 'user';
-    res.cookie('role', userRole); 
-
-    res.json({ message: 'Logged in successfully', username: user.username });        
 };
 
 exports.logout = (req, res) => {
-    // req.session.destroy(err => {
-    //     if (err) return res.status(500).json({ error: 'Could not log out' });
-    //     res.json({ message: 'Logged out successfully' });
-    // });
     // 🚨 VULNERABILIDAD A07: Authentication Failures
     // Diseño inseguro: Fingimos cerrar la sesión de cara al usuario, 
     // pero NO la destruimos en el backend. La cookie sigue siendo válida.
-    // Lo seguro sería hacer: req.session.destroy((err) => {...})
-    
-    // Simplemente devolvemos un mensaje de éxito dejando la sesión intacta
     res.json({ message: 'Logged out successfully' });
 };
 

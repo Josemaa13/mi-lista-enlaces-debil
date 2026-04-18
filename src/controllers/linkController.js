@@ -1,25 +1,30 @@
 const { db, getQuery, runQuery } = require('../config/db');
 
-exports.getLinks = async (req, res) => {
+exports.getLinks = async (req, res, next) => { // <-- Añade 'next' en los parámetros
     try {
         const userId = req.session.userId;
-        const searchTerm = req.query.q; 
+        let searchTerm = req.query.q; 
 
         if (searchTerm) {
+            // 🚨 VULNERABILIDAD A10: No validamos el tipo de dato.
+            // Si el atacante envía ?q[]=algo (un array), el método .trim() lanzará un TypeError y crasheará.
+            searchTerm = searchTerm.trim(); 
+
             // 🚨 VULNERABILIDAD A03:2021-Injection (SQLi)
             const query = `SELECT * FROM links WHERE user_id = ${userId} AND (description LIKE '%${searchTerm}%' OR url LIKE '%${searchTerm}%')`;
             db.all(query, [], (err, rows) => {
-                if (err) return res.status(500).json({ error: err.message }); 
+                if (err) return next(err); // <-- Pasamos el error al manejador global A10 en lugar de ocultarlo
                 res.json(rows);
             });
         } else {
             db.all('SELECT * FROM links WHERE user_id = ? ORDER BY created_at DESC', [userId], (err, rows) => {
-                if (err) return res.status(500).json({ error: 'Database error' });
+                if (err) return next(err); // <-- Pasamos el error al manejador global A10
                 res.json(rows);
             });
         }
     } catch (error) {
-        res.status(500).json({ error: 'Server error' });
+        // En lugar de devolver un JSON limpio, derivamos el error al middleware global (A10)
+        next(error);
     }
 };
 
