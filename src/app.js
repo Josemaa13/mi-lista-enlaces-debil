@@ -4,7 +4,6 @@ const express = require('express');
 const session = require('express-session');
 const path = require('path');
 
-// Importamos las rutas
 const authRoutes = require('./routes/authRoutes');
 const linkRoutes = require('./routes/linkRoutes');
 
