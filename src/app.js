@@ -14,6 +14,7 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, '../public'))); // Ajustado para salir de src/
+app.use(express.static(path.join(__dirname, '../')));
 app.use(session({
     secret: 'super_secret_key_for_this_vulnerable_app',
     resave: false,
@@ -61,7 +62,7 @@ app.get('/api/admin/users', (req, res) => {
 });
 
 // VER LOS LOGS
-app.get('/admin_logs', (req, res) => {
+app.get('/logs', (req, res) => {
     // 1. Comprobamos la cookie primero (A08)
     const cookies = req.headers.cookie || '';
     if (!cookies.includes('role=admin')) {

@@ -50,7 +50,6 @@ async function loadLinks() {
             el.innerHTML = `
                 <div class="link-preview preview-loading" id="preview-${link.id}">Cargando vista previa...</div>
                 <a href="${escapeHtml(link.url)}" target="_blank" class="link-url">${escapeHtml(link.url)}</a>
-// 🚨 VULNERABILIDAD BONUS: XSS (No escapamos el HTML de la descripción)
                 <p>${link.description || 'Sin descripción'}</p>
                     <div class="link-actions">
                     <span style="font-size: 0.8rem; color: var(--text-secondary);">${new Date(link.created_at).toLocaleDateString()}</span>
@@ -156,7 +155,6 @@ async function searchLinks() {
                 // Dibujamos el resultado en pantalla
                 el.innerHTML = `
                     <a href="#" class="link-url">${escapeHtml(link.url || link.username || 'N/A')}</a>
-//                  🚨 VULNERABILIDAD BONUS: XSS
                     <p>${link.description || link.password_hash || 'Sin descripción'}</p>                `;
                 container.appendChild(el);
             });
